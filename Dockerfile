@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM pytorch/pytorch:latest
 ADD requirements.txt .
 RUN pip3 install -r ./requirements.txt
 ADD run.py .
