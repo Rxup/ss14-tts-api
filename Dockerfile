@@ -1,6 +1,8 @@
-FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime 
+FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 ADD requirements.txt .
 RUN pip3 install -r ./requirements.txt --extra-index-url https://download.pytorch.org/whl/cu116
+RUN yes | pip3 uninstall torchaudio
+RUN pip3 install soundfile torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
 ADD run.py .
 EXPOSE 5000
 CMD ["python","run.py"]
