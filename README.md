@@ -1,5 +1,11 @@
 # ss14-tts-api
 
+### запуск в докер
+```
+docker build . -t ss14-tts-api:latest
+docker run -it -d --rm  --name ss14tts -p 5000:5000 ss14-tts-api:latest
+```
+
 ### запуск без docker
 
 windows: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe
@@ -10,6 +16,8 @@ windows: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe
 pip3 install -r ./requirements.txt --extra-index-url https://download.pytorch.org/whl/cu116
 python ss14tts.py
 ```
+
+### Прочие
 
 конфиг:
 
