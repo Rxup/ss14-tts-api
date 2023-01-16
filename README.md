@@ -9,4 +9,4 @@ windows: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe
 
 pip3 install -r ./requirements.txt
 
-python run.py
+python ss14tts.py

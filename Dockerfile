@@ -5,5 +5,5 @@ RUN yes | pip3 uninstall torchaudio
 RUN pip3 install soundfile torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
 ADD run.py .
 EXPOSE 5000
-CMD ["python","run.py"]
-ENTRYPOINT [ "python","run.py" ]
+CMD ["python","ss14tts.py"]
+ENTRYPOINT [ "python","ss14tts.py" ]
