@@ -1,6 +1,6 @@
 # ss14-tts-api
 
-### запуск в докер
+### запуск в докере
 ```
 docker build . -t ss14-tts-api:latest
 docker run -it -d --rm  --name ss14tts -p 5000:5000 ss14-tts-api:latest
