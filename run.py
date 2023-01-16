@@ -16,7 +16,14 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+app.logger.disabled = True
+log.disabled = True
+
 speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
+
 
 @app.route('/tts', methods=['POST'])
 def get_tasks():
