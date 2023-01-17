@@ -3,6 +3,7 @@
 ### запуск в докере
 ```
 docker build . -t ss14-tts-api:latest
+docker rm -f ss14tts
 docker run -it -d --rm  --name ss14tts -p 5000:5000 ss14-tts-api:latest
 ```
 
