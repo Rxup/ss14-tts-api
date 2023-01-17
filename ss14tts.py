@@ -7,20 +7,21 @@ language = 'ru'
 model_id = 'v3_1_ru'
 device = torch.device('cpu')
 
-model, example_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
+model, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
                                      model='silero_tts',
                                      language=language,
-                                     speaker=model_id)
+                                     speaker=model_id, 
+                                     trust_repo=True)
 
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-import logging
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
-app.logger.disabled = True
-log.disabled = True
+#import logging
+#log = logging.getLogger('werkzeug')
+#log.setLevel(logging.ERROR)
+#app.logger.disabled = True
+#log.disabled = True
 
 speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
 
@@ -59,5 +60,5 @@ def get_tasks():
 
     return jsonify({'results': [{'Audio': base64.b64encode(buffer_.getvalue()).decode()}]})
 
-
-app.run(host= '0.0.0.0',debug=False)
+if __name__ == '__main__':
+    app.run(host= '0.0.0.0',debug=False)
