@@ -7,6 +7,11 @@ docker rm -f ss14tts
 docker run -it -d --rm  --name ss14tts -p 5000:5000 ss14-tts-api:latest
 ```
 
+просмотр логов в докере:
+```
+docker logs ss14tts -f
+```
+
 ### запуск без docker
 
 windows: https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe
