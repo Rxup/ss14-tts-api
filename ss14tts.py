@@ -45,13 +45,15 @@ def get_tasks():
     speaker = request.json['speaker']
     if speaker not in speakers:
         if speaker in speakers_not_avaible['Male']:
-            speaker = 'aidar'
-        if speaker in speakers_not_avaible['Female']:
-            speaker = 'kseniya'
-        if speaker in speakers_not_avaible['Unsexed']:
-            speaker = 'baya'
-        if speaker not in speakers:
-            speaker = 'random'
+            speaker = 'eugene'
+        else:
+            if speaker in speakers_not_avaible['Female']:
+                speaker = 'kseniya'
+            else:
+                if speaker in speakers_not_avaible['Unsexed']:
+                    speaker = 'baya'
+    if speaker not in speakers:
+        speaker = 'random'
     
     if request.json['ssml']:
         audio = model.apply_tts(ssml_text=request.json['text'],
