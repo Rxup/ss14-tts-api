@@ -25,6 +25,16 @@ app = Flask(__name__)
 
 speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
 
+speakers_not_avaible = {
+    #free: 'aidar','eugene'
+    'Male': ['arthas','thrall','kael','rexxar','furion','illidan','kelthuzad','narrator','cairne','garithos','anubarak','uther','grunt','medivh','villagerm','illidan_f','peon','chen','dread_bm','priest','acolyte','muradin','dread_t','mannoroth','peasant','wheatley','barney','raynor','tusk','earth','wraith','bristle','gyro','treant','lancer','clockwerk','batrider','kotl','kunkka','pudge','juggernaut','vort_e2','omni','sniper','skywrath','huskar','bloodseeker','shaker','storm','tide','riki','witchdoctor','doom','bandit','pantheon','tychus','breen','kleiner','father','tosh','stetmann','hanson','swann','hill','gman_e2','valerian','gman','vort','aradesh','dornan','harris','cabbot','decker','dick','officer','frank','gizmo','hakunin','harold','harry','maxson','killian','lieutenant','loxley','lynette','marcus','master','morpheus','overseer','rhombus','set','sulik','dude','archmage','demoman','engineer','heavy','medic','scout','soldier','spy','admiral','alchemist','archimonde','breaker','captain','footman','grom','hh','keeper','naga_m','naga_rg','rifleman','satyr','voljin','sidorovich'], 
+    #free 'kseniya','xenia'
+    'Female': ['maiev','tyrande','jaina','ladyvashj','naisha','sylvanas','sorceress','alyx','glados','announcer','kerrigan','lina','luna','windranger','templar','ranger','mortred','queen','evelynn','elder','jain','laura','nicole','tandi','vree','huntress','peasant_w','sylvanas_w'],
+    #free 'baya'
+    'Unsexed': ['meepo','bounty','antimage','yuumi','myron','dryad','elf_eng']
+}
+
+
 
 @app.route('/tts', methods=['POST'])
 def get_tasks():
@@ -34,11 +44,15 @@ def get_tasks():
     audio = None
     speaker = request.json['speaker']
     if speaker not in speakers:
-        if speaker == 'garithos':
+        if speaker in speakers_not_avaible['Male']:
             speaker = 'aidar'
-        else:
-            speaker = 'eugene'
-
+        if speaker in speakers_not_avaible['Female']:
+            speaker = 'kseniya'
+        if speaker in speakers_not_avaible['Unsexed']:
+            speaker = 'baya'
+        if speaker not in speakers:
+            speaker = 'random'
+    
     if request.json['ssml']:
         audio = model.apply_tts(ssml_text=request.json['text'],
             speaker=speaker,
