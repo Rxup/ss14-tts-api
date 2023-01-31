@@ -3,6 +3,8 @@ import io
 import torch
 import torchaudio
 
+torch.set_num_threads(4)
+
 language = 'ru'
 model_id = 'v3_1_ru'
 device = torch.device('cpu')
@@ -33,8 +35,17 @@ speakers_not_avaible = {
     #free 'baya'
     'Unsexed': ['meepo','bounty','antimage','yuumi','myron','dryad','elf_eng']
 }
-
-
+speakers_rnd = {}
+for idx, value in enumerate(speakers_not_avaible['Male']):
+    if (idx % 2) == 0:
+        speakers_rnd[value] = 1
+    else:
+        speakers_rnd[value] = 2
+for idx, value in enumerate(speakers_not_avaible['Female']):
+    if (idx % 2) == 0:
+        speakers_rnd[value] = 1
+    else:
+        speakers_rnd[value] = 2
 
 @app.route('/tts', methods=['POST'])
 def get_tasks():
@@ -45,15 +56,19 @@ def get_tasks():
     speaker = request.json['speaker']
     if speaker not in speakers:
         if speaker in speakers_not_avaible['Male']:
-            speaker = 'eugene'
-        else:
-            if speaker in speakers_not_avaible['Female']:
-                speaker = 'kseniya'
+            if speakers_rnd[speaker] == 1:
+                speaker = 'aidar'
             else:
-                if speaker in speakers_not_avaible['Unsexed']:
-                    speaker = 'baya'
+                speaker = 'eugene'
+        elif speaker in speakers_not_avaible['Female']:
+            if speakers_rnd[speaker] == 1:
+                speaker = 'xenia'
+            else:
+                speaker = 'kseniya'
+        elif speaker in speakers_not_avaible['Unsexed']:
+            speaker = 'baya'
     if speaker not in speakers:
-        speaker = 'random'
+        speaker = 'baya'
     
     if request.json['ssml']:
         audio = model.apply_tts(ssml_text=request.json['text'],
