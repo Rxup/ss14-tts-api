@@ -1,5 +1,11 @@
+import os
 from gevent.pywsgi import WSGIServer
-from ss14tts import app
+print("start load app!")
+from ss14tts import app,WarmUp,model,example_text
 
-http_server = WSGIServer(("0.0.0.0", 5000), app)
+print("init!")
+
+http_server = WSGIServer(("0.0.0.0", int(os.environ.get("PORT","5000"))), app)
+WarmUp(model,example_text)
+print("run!")
 http_server.serve_forever()

@@ -1,21 +1,29 @@
-import base64
-import io
+import base64, os, io
+
+from src.SpeakerPatch import SpeakerPatch,SpeakerPatchInit
+from src.WarmUp import WarmUp
+
 import torch
 import torchaudio
 
-torch.set_num_threads(4)
+torch.set_num_threads(int(os.environ.get("threads","4")))
 
 language = 'ru'
 model_id = 'v3_1_ru'
-device = torch.device('cpu')
+deviceName = "cuda" if torch.cuda.is_available() else "cpu"
+device = torch.device(deviceName)
 
-model, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
+ApiToken = os.environ.get("apitoken","test")
+
+model, example_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
                                      model='silero_tts',
                                      language=language,
                                      speaker=model_id, 
                                      trust_repo=True)
 
-from flask import Flask, request, jsonify
+model.to(device)  # gpu or cpu
+
+from flask import Flask, request, jsonify, abort
 
 app = Flask(__name__)
 
@@ -25,64 +33,44 @@ app = Flask(__name__)
 #app.logger.disabled = True
 #log.disabled = True
 
+
+# доступные спикера
 speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
 
-speakers_not_avaible = {
-    #free: 'aidar','eugene'
-    'Male': ['arthas','thrall','kael','rexxar','furion','illidan','kelthuzad','narrator','cairne','garithos','anubarak','uther','grunt','medivh','villagerm','illidan_f','peon','chen','dread_bm','priest','acolyte','muradin','dread_t','mannoroth','peasant','wheatley','barney','raynor','tusk','earth','wraith','bristle','gyro','treant','lancer','clockwerk','batrider','kotl','kunkka','pudge','juggernaut','vort_e2','omni','sniper','skywrath','huskar','bloodseeker','shaker','storm','tide','riki','witchdoctor','doom','bandit','pantheon','tychus','breen','kleiner','father','tosh','stetmann','hanson','swann','hill','gman_e2','valerian','gman','vort','aradesh','dornan','harris','cabbot','decker','dick','officer','frank','gizmo','hakunin','harold','harry','maxson','killian','lieutenant','loxley','lynette','marcus','master','morpheus','overseer','rhombus','set','sulik','dude','archmage','demoman','engineer','heavy','medic','scout','soldier','spy','admiral','alchemist','archimonde','breaker','captain','footman','grom','hh','keeper','naga_m','naga_rg','rifleman','satyr','voljin','sidorovich'], 
-    #free 'kseniya','xenia'
-    'Female': ['maiev','tyrande','jaina','ladyvashj','naisha','sylvanas','sorceress','alyx','glados','announcer','kerrigan','lina','luna','windranger','templar','ranger','mortred','queen','evelynn','elder','jain','laura','nicole','tandi','vree','huntress','peasant_w','sylvanas_w'],
-    #free 'baya'
-    'Unsexed': ['meepo','bounty','antimage','yuumi','myron','dryad','elf_eng']
-}
-speakers_rnd = {}
-for idx, value in enumerate(speakers_not_avaible['Male']):
-    if (idx % 2) == 0:
-        speakers_rnd[value] = 1
-    else:
-        speakers_rnd[value] = 2
-for idx, value in enumerate(speakers_not_avaible['Female']):
-    if (idx % 2) == 0:
-        speakers_rnd[value] = 1
-    else:
-        speakers_rnd[value] = 2
+SpeakerPatchInit(model,example_text)
 
+# Docker HealthCheck
+@app.route('/health', methods=['GET'])
+def doHEALTH():
+    return "OK"
+
+# TTS вход
 @app.route('/tts', methods=['POST'])
-def get_tasks():
+def doTTS():
     req = request.json
-    if request.json['api_token'] != "test":
+    if request.json['api_token'] != ApiToken:
+        abort(403)
         return
     audio = None
     speaker = request.json['speaker']
-    if speaker not in speakers:
-        if speaker in speakers_not_avaible['Male']:
-            if speakers_rnd[speaker] == 1:
-                speaker = 'aidar'
-            else:
-                speaker = 'eugene'
-        elif speaker in speakers_not_avaible['Female']:
-            if speakers_rnd[speaker] == 1:
-                speaker = 'xenia'
-            else:
-                speaker = 'kseniya'
-        elif speaker in speakers_not_avaible['Unsexed']:
-            speaker = 'baya'
-    if speaker not in speakers:
-        speaker = 'baya'
+
+    speaker, voiceFile = SpeakerPatch(speaker,speakers)
     
     if request.json['ssml']:
         audio = model.apply_tts(ssml_text=request.json['text'],
             speaker=speaker,
             sample_rate=request.json['sample_rate'],
             put_accent=request.json['put_accent'],
-            put_yo=request.json['put_yo']
+            put_yo=request.json['put_yo'],
+            voice_path=voiceFile
         )
     else:
         audio = model.apply_tts(text=request.json['text'],
             speaker=speaker,
             sample_rate=request.json['sample_rate'],
             put_accent=request.json['put_accent'],
-            put_yo=request.json['put_yo']
+            put_yo=request.json['put_yo'],
+            voice_path=voiceFile
         )
     # Saving to bytes buffer
     buffer_ = io.BytesIO()
@@ -92,4 +80,5 @@ def get_tasks():
     return jsonify({'results': [{'Audio': base64.b64encode(buffer_.getvalue()).decode()}]})
 
 if __name__ == '__main__':
-    app.run(host= '0.0.0.0',debug=False)
+    WarmUp(model,speakers)
+    app.run(host= '0.0.0.0',debug=False,port=int(os.environ.get("PORT","5000")))
