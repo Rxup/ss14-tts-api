@@ -16,10 +16,12 @@ device = torch.device(deviceName)
 ApiToken = os.environ.get("apitoken","test")
 
 model, example_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
-                                     model='silero_tts',
-                                     language=language,
-                                     speaker=model_id, 
-                                     trust_repo=True)
+    model='silero_tts',
+    language=language,
+    speaker=model_id, 
+    trust_repo=True,
+    verbose=False
+)
 
 model.to(device)  # gpu or cpu
 
@@ -55,7 +57,7 @@ def doTTS():
     speaker = request.json['speaker']
 
     speaker, voiceFile = SpeakerPatch(speaker,speakers)
-    
+
     if request.json['ssml']:
         audio = model.apply_tts(ssml_text=request.json['text'],
             speaker=speaker,
