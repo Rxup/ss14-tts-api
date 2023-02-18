@@ -29,13 +29,13 @@
   speaker: eugene
 
 - type: ttsVoice
-  id: Eugene
+  id: Oleg
   name: tts-voice-name-oleg
   sex: Male
   speaker: oleg
 
 - type: ttsVoice
-  id: Eugene
+  id: Zina
   name: tts-voice-name-zina
   sex: Female
   speaker: zina
