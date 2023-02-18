@@ -15,13 +15,21 @@ device = torch.device(deviceName)
 
 ApiToken = os.environ.get("apitoken","test")
 
-model, example_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
-    model='silero_tts',
-    language=language,
-    speaker=model_id, 
-    trust_repo=True,
-    verbose=False
-)
+local_file = 'model.pt'
+if not os.path.isfile(local_file):
+    print("Start download silero models")
+    torch.hub.download_url_to_file('https://models.silero.ai/models/tts/ru/v3_1_ru.pt',
+                                   local_file)  
+
+model = torch.package.PackageImporter(local_file).load_pickle("tts_models", "model")
+example_text = "В недрах тундры выдры в г+етрах т+ырят в вёдра ядра кедров."
+#model, example_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
+#    model='silero_tts',
+#    language=language,
+#    speaker=model_id, 
+#    trust_repo=True,
+#    verbose=False
+#)
 
 model.to(device)  # gpu or cpu
 
