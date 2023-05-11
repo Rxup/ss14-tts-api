@@ -14,15 +14,21 @@ import torchaudio
 torch.set_num_threads(int(os.environ.get("threads", "4")))
 deviceName = "cuda" if torch.cuda.is_available() else "cpu"
 device = torch.device(deviceName)
+is_docker = os.environ.get("AM_I_IN_A_DOCKER_CONTAINER")
+if is_docker:
+    language = os.environ.get("language")
+    model_id = os.environ.get("model_id")
+    speakers = os.environ.get("speakers").split(',')
+else:
+    # init .ini parser
+    config = ConfigParser()
+    # parse config
+    config.read('config.ini')
+    # read values from a section
+    language = config.get('main', 'language')
+    model_id = config.get('main', 'model_id')
+    speakers = config.get('main', 'speakers')
 
-# init .ini parser
-config = ConfigParser()
-# parse config
-config.read('config.ini')
-# read values from a section
-language = config.get('main', 'language')
-model_id = config.get('main', 'model_id')
-speakers = config.get('main', 'speakers')
 ApiToken = os.environ.get("apitoken", "test")
 
 local_file = 'model.pt'

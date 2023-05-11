@@ -23,10 +23,12 @@ pip3 install -r ./requirements.txt --extra-index-url https://download.pytorch.or
 python ss14tts.py
 ```
 ### Конфигурация
+
 Файл:
 ```
 config.ini
 ```
+___P.S все переменные у докера находятся в Dockerfile-е!___
 
 Пример конфиг файла для английской модели (Там 100+ спикеров, для теста прописал только 4):
 
@@ -38,7 +40,7 @@ speakers = en_0, en_1, en_2, random
 
 language - язык модели\
 model_id ~~Как ни странно~~ - Название модели\
-speakers - массив спикеров
+speakers - массив спикеров\
 Язык и model_id брать отсюда:
 ```
 https://models.silero.ai/models/tts/

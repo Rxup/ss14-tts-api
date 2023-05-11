@@ -1,6 +1,7 @@
 FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 VOLUME [ "/root/.cache/" ]
 VOLUME [ "/workspace/voices" ]
+VOLUME [ "/config" ]
 RUN python -m venv venv
 RUN . venv/bin/activate
 ADD requirements.txt .
