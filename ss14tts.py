@@ -2,6 +2,7 @@ import base64, os, io
 
 from src.SpeakerPatch import SpeakerPatch,SpeakerPatchInit
 from src.WarmUp import WarmUp
+from src.SoundEffects import add_echo, add_radio_effect
 
 import torch
 import torchaudio
@@ -45,7 +46,7 @@ app = Flask(__name__)
 
 
 # доступные спикера
-speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
+speakers = model.speakers # ['aidar', 'baya', 'kseniya', 'xenia', 'eugene', 'random']
 
 SpeakerPatchInit(model,example_text)
 
@@ -86,6 +87,19 @@ def doTTS():
     buffer_ = io.BytesIO()
     torchaudio.save(buffer_, audio.unsqueeze(0), request.json['sample_rate'], format=req["format"])
     buffer_.seek(0)
+
+    effect = req.json['effect'] or None
+
+    if effect == "Echo": 
+        # метро: (для аннонсов)
+        delay = 0.03  # Задержка в секундах (30 миллисекунд)
+        decay = 0.7  # Затухание
+        buffer_ = add_echo(buffer_, delay, decay)
+    elif effect == "Radio":
+        cutoff_freq_low = 2000  # Частота среза для фильтра низких частот (Гц)
+        cutoff_freq_high = 3000  # Частота среза для фильтра высоких частот (Гц)
+        noise_level = 0.1  # Уровень шума
+        buffer_ = add_radio_effect(buffer_, cutoff_freq_low, cutoff_freq_high, noise_level)
 
     return jsonify({'results': [{'Audio': base64.b64encode(buffer_.getvalue()).decode()}]})
 

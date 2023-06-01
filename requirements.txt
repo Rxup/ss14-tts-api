@@ -8,3 +8,5 @@ Flask
 jsonify
 PySoundFile
 numpy
+librosa
+soundfile
