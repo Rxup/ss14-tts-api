@@ -2,6 +2,7 @@ import numpy as np
 import librosa
 import soundfile as sf
 import io
+from scipy.signal import butter, lfilter
 
 def add_echo(input_buffer, delay, decay):
     # Загрузка звукового файла из буфера
@@ -33,12 +34,12 @@ def add_radio_effect(input_buffer, cutoff_freq_low, cutoff_freq_high, noise_leve
 
     # Создание фильтров низких и высоких частот для эффекта рации
     nyquist_freq = 0.5 * sr
-    b_low, a_low = librosa.core.butter(10, cutoff_freq_low / nyquist_freq, btype='low')
-    b_high, a_high = librosa.core.butter(10, cutoff_freq_high / nyquist_freq, btype='high')
+    b_low, a_low = butter(10, cutoff_freq_low / nyquist_freq, btype='low')
+    b_high, a_high = butter(10, cutoff_freq_high / nyquist_freq, btype='high')
 
     # Применение фильтров к звуковому файлу
-    filtered_audio_low = librosa.core.lfilter(b_low, a_low, audio)
-    filtered_audio_high = librosa.core.lfilter(b_high, a_high, audio)
+    filtered_audio_low = lfilter(b_low, a_low, audio)
+    filtered_audio_high = lfilter(b_high, a_high, audio)
 
     # Генерация шума
     noise = np.random.normal(scale=noise_level, size=len(audio))
