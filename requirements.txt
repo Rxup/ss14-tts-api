@@ -10,3 +10,4 @@ PySoundFile
 numpy
 librosa
 soundfile
+scipy
