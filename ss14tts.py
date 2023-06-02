@@ -88,7 +88,7 @@ def doTTS():
     torchaudio.save(buffer_, audio.unsqueeze(0), request.json['sample_rate'], format=req["format"])
     buffer_.seek(0)
 
-    effect = req.json['effect'] or None
+    effect = request.json['effect'] or None
 
     if effect == "Echo": 
         # метро: (для аннонсов)
