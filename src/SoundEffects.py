@@ -31,18 +31,31 @@ def add_radio_effect(input_buffer, cutoff_freq_low, cutoff_freq_high, noise_leve
     # Загрузка звукового файла из буфера
     audio, sr = librosa.load(input_buffer, sr=None, mono=True)
 
-    # Применение фильтра низких частот
-    filtered_low = librosa.lowpass_filter(audio, sr, cutoff_freq_low)
+    # Создание фильтров низких и высоких частот для эффекта рации
+    nyquist_freq = 0.5 * sr
+    b_low, a_low = librosa.core.butter(10, cutoff_freq_low / nyquist_freq, btype='low')
+    b_high, a_high = librosa.core.butter(10, cutoff_freq_high / nyquist_freq, btype='high')
 
-    # Применение фильтра высоких частот
-    filtered_high = librosa.highpass_filter(filtered_low, sr, cutoff_freq_high)
+    # Применение фильтров к звуковому файлу
+    filtered_audio_low = librosa.core.lfilter(b_low, a_low, audio)
+    filtered_audio_high = librosa.core.lfilter(b_high, a_high, audio)
 
-    # Добавление шума
-    noise = np.random.normal(scale=noise_level, size=len(filtered_high))
-    output = filtered_high + noise
+    # Генерация шума
+    noise = np.random.normal(scale=noise_level, size=len(audio))
+    
+    # Нормализация аудио
+    filtered_audio_low = librosa.util.normalize(filtered_audio_low)
+    filtered_audio_high = librosa.util.normalize(filtered_audio_high)
+    noise = librosa.util.normalize(noise)
+
+    # Применение эффекта рации
+    radio_effect = filtered_audio_low + filtered_audio_high + noise
+
+    # Смешивание оригинального аудио и эффекта рации
+    mixed_audio = audio + radio_effect
 
     # Запись результата в новый буфер
     output_buffer = io.BytesIO()
-    sf.write(output_buffer, output, sr, format='OGG', subtype='VORBIS')
+    sf.write(output_buffer, mixed_audio, sr, format='OGG', subtype='VORBIS')
 
     return output_buffer
