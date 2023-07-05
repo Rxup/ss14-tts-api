@@ -39,3 +39,37 @@ enabled=true
 > tts-voices.yml
 
 копирнуть в /Resources/Prototypes/Corvax
+
+### Скрипт быстрого запуска
+
+```
+#!/bin/bash
+
+# Клонирование репозитория
+repo_url="https://github.com/Rxup/ss14-tts-api.git"
+repo_dir="ss14-tts-api"
+if [ -d "$repo_dir" ]; then
+    rm -rf "$repo_dir"
+fi
+git clone "$repo_url"
+
+# Создание Docker-образа
+docker_image_name="ss14-tts-api"
+docker build -t "$docker_image_name" "$repo_dir"
+
+# Переменные окружения
+threads=$(nproc)  # Количество ядер процессора
+apitoken="YOUR_API_TOKEN"  # Здесь укажите свой секретный ключ
+
+# Запуск Docker-образа с авто-перезагрузкой и публикацией порта 5000
+container_name="ss14-tts-api-container"
+docker stop "$container_name" >/dev/null 2>&1
+docker rm "$container_name" >/dev/null 2>&1
+docker run -d \
+    --name "$container_name" \
+    -p 5000:5000 \
+    --restart always \
+    -e "threads=$threads" \
+    -e "apitoken=$apitoken" \
+    "$docker_image_name"
+```
