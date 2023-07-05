@@ -1,7 +1,7 @@
 FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 VOLUME [ "/root/.cache/" ]
 VOLUME [ "/workspace/voices" ]
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl libsndfile1 && rm -rf /var/lib/apt/lists/*
 RUN python -m venv venv
 RUN . venv/bin/activate
 ADD requirements.txt .
