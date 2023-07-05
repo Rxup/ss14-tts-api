@@ -72,4 +72,13 @@ docker run -d \
     -e "threads=$threads" \
     -e "apitoken=$apitoken" \
     "$docker_image_name"
+
+# Получение внешнего IP-адреса
+external_ip=$(curl -s ifconfig.me)
+
+# Вывод конфигурационных параметров
+echo "[tts]"
+echo "api_url=\"http://$external_ip:5000/tts\""
+echo "api_token=\"$apitoken\""
+echo "enabled=true"
 ```
