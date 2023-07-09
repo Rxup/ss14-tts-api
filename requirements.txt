@@ -11,3 +11,4 @@ numpy
 librosa
 soundfile
 scipy
+pydub
