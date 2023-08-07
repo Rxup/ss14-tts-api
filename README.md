@@ -48,10 +48,16 @@ enabled=true
 # Клонирование репозитория
 repo_url="https://github.com/Rxup/ss14-tts-api.git"
 repo_dir="ss14-tts-api"
+# Проверяем, существует ли директория репозитория
 if [ -d "$repo_dir" ]; then
-    rm -rf "$repo_dir"
+    echo "Репозиторий уже скачан. Выполняю обновление..."
+    cd "$repo_dir"
+    git pull
+else
+    echo "Репозиторий не скачан. Выполняю клонирование..."
+    git clone "$repo_url" "$repo_dir"
+    cd "$repo_dir"
 fi
-git clone "$repo_url"
 
 # Создание Docker-образа
 docker_image_name="ss14-tts-api"
