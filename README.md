@@ -8,7 +8,7 @@ docker run -it -d --name ss14tts -p 5000:5000 ss14-tts-api:latest
 
 ### запуск в докере
 ```
-docker run -it -d --name ss14tts -p 5000:5000 backmen/ss14-tts:main
+docker run -it -d --name ss14tts -p 5000:5000 backmen/ss14-tts:latest
 ```
 
 ### удаление (для обновления)
@@ -68,9 +68,8 @@ else
     cd "$repo_dir"
 fi
 
-# Создание Docker-образа
-docker_image_name="ss14-tts-api"
-docker build -t "$docker_image_name" "$repo_dir"
+# Использование готового Docker-образа
+docker_image_name="backmen/ss14-tts:latest"
 
 # Переменные окружения
 threads=$(nproc)  # Количество ядер процессора
@@ -78,6 +77,7 @@ apitoken="YOUR_API_TOKEN"  # Здесь укажите свой секретны
 
 # Запуск Docker-образа с авто-перезагрузкой и публикацией порта 5000
 container_name="ss14-tts-api-container"
+docker pull "$container_name" >/dev/null 2>&1
 docker stop "$container_name" >/dev/null 2>&1
 docker rm "$container_name" >/dev/null 2>&1
 docker run -d \
