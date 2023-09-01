@@ -1,10 +1,19 @@
 # ss14-tts-api
 
-### запуск в докере
+### сборка своего образа
 ```
 docker build . -t ss14-tts-api:latest
-docker rm -f ss14tts
 docker run -it -d --name ss14tts -p 5000:5000 ss14-tts-api:latest
+```
+
+### запуск в докере
+```
+docker run -it -d --name ss14tts -p 5000:5000 backmen/ss14-tts:main
+```
+
+### удаление (для обновления)
+```
+docker rm -f ss14tts
 ```
 
 просмотр логов в докере:
