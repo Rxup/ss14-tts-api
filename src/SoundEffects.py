@@ -1,58 +1,103 @@
-import numpy as np
-import librosa
 from pydub import AudioSegment
-from pydub.effects import normalize
+import subprocess
 import io
-from scipy.signal import butter, lfilter
 
-def add_echo(input_buffer, new_pitch, decay):
-    input_buffer.seek(0)
-    # Загрузка звукового файла
-    audio = AudioSegment.from_file(input_buffer, format='ogg')
+# https://freesound.org/people/jorickhoofd/sounds/160144/
+def add_echo(input_buffer, output_format='ogg'):
+    # Создайте FFmpeg команду с указанными фильтрами
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', 'pipe:0',  # ввод из pipe (стандартного ввода)
+        '-i', 'announce.wav',
+        '-filter_complex', '[0] [1] afir=dry=3:wet=8',
+        '-f', output_format,  # формат вывода (например, OGG)
+        'pipe:1'  # вывод в pipe (стандартный вывод)
+    ]
 
-    # Применение питча
-    audio_with_pitch = audio._spawn(audio.raw_data, overrides={
-        "frame_rate": int(audio.frame_rate * new_pitch)
-    })
+    # Запустите процесс FFmpeg с выводом ошибок в stderr
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # Применение реверберации
-    audio_with_reverb = audio_with_pitch.fade_in(50).fade_out(50).normalize().apply_gain(-10).apply_gain_stereo(-1, 1).normalize()
+    # Прочитайте данные из входного буфера
+    input_audio = input_buffer.read()
 
-    # Запись измененного аудио в буфер
+    # Выполните обработку аудио в FFmpeg и получите код завершения
+    output_audio, err_output = ffmpeg_process.communicate(input_audio)
+    return_code = ffmpeg_process.returncode
+
+    # Закройте процесс FFmpeg
+    ffmpeg_process.wait()
+
+    # Если код завершения не равен нулю, выводите ошибку FFmpeg
+    if return_code != 0:
+        print("Ошибка FFmpeg:")
+        print(err_output.decode("utf-8"))
+
+    # Создайте буфер для измененного аудио и верните его
     output_buffer = io.BytesIO()
-    audio_with_reverb.export(output_buffer, format='ogg')
+    output_buffer.write(output_audio)
+    output_buffer.seek(0)
 
     return output_buffer
 
-def add_radio_effect(input_buffer, cutoff_freq_low, cutoff_freq_high, noise_level):
-    # Загрузка звукового файла из буфера
-    audio, sr = librosa.load(input_buffer, sr=None, mono=True)
+#https://freesound.org/people/Breviceps/sounds/457037/
+radio1_audio = AudioSegment.from_file("radio1.wav")
+radio2_audio = AudioSegment.from_file("radio2.wav")
 
-    # Создание фильтров низких и высоких частот для эффекта рации
-    nyquist_freq = 0.5 * sr
-    b_low, a_low = butter(10, cutoff_freq_low / nyquist_freq, btype='low')
-    b_high, a_high = butter(10, cutoff_freq_high / nyquist_freq, btype='high')
+def add_radio_effect(input_buffer, hz=44100, format='ogg'):
+    input_buffer.seek(0)
+    # Загрузка звукового файла
+    audio = AudioSegment.from_file(input_buffer, format=format)
 
-    # Применение фильтров к звуковому файлу
-    filtered_audio_low = lfilter(b_low, a_low, audio)
-    filtered_audio_high = lfilter(b_high, a_high, audio)
+    # Примените эффект highpass
+    audio = audio.high_pass_filter(1000)
 
-    # Генерация шума
-    noise = np.random.normal(scale=noise_level, size=len(audio))
-    
-    # Нормализация аудио
-    filtered_audio_low = librosa.util.normalize(filtered_audio_low)
-    filtered_audio_high = librosa.util.normalize(filtered_audio_high)
-    noise = librosa.util.normalize(noise)
+    # Примените эффект lowpass
+    audio = audio.low_pass_filter(3000)
 
-    # Применение эффекта рации
-    radio_effect = filtered_audio_low + filtered_audio_high + noise
+    # Примените эффект acrusher
+    audio = audio.set_frame_rate(hz)  # Установите желаемую частоту дискретизации
+    audio = audio.set_channels(1)  # Установите желаемое количество каналов (1 для моно, 2 для стерео)
+    audio = audio.set_sample_width(1)  # Установите желаемый размер выборки (1 байт)
 
-    # Смешивание оригинального аудио и эффекта рации
-    mixed_audio = audio + radio_effect
+    audio = radio1_audio + audio + radio2_audio
 
-    # Запись результата в новый буфер
+    # Запись измененного аудио в буфер
     output_buffer = io.BytesIO()
-    soundfile.write(output_buffer, mixed_audio, sr, format='OGG', subtype='VORBIS')
+    audio.export(output_buffer, format=format)
+
+    return output_buffer
+
+def add_robot(input_buffer, output_format='ogg'):
+    # Запустите FFmpeg с указанными фильтрами
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', 'pipe:0',  # ввод из pipe (стандартного ввода)
+        '-filter:a', "afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=1024:overlap=0.5,deesser=i=0.4,volume=volume=1.5",
+        '-f', output_format,  # формат вывода (OGG)
+        'pipe:1'  # вывод в pipe (стандартный вывод)
+    ]
+
+    # Запустите процесс FFmpeg с выводом ошибок в stderr
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Прочитайте данные из входного буфера
+    input_audio = input_buffer.read()
+
+    # Выполните обработку аудио в FFmpeg и получите код завершения
+    output_audio, err_output = ffmpeg_process.communicate(input_audio)
+    return_code = ffmpeg_process.returncode
+
+    # Закройте процесс FFmpeg
+    ffmpeg_process.wait()
+
+    # Если код завершения не равен нулю, выводите ошибку FFmpeg
+    if return_code != 0:
+        print("Ошибка FFmpeg:")
+        print(err_output.decode("utf-8"))
+
+    # Создайте буфер для измененного аудио
+    output_buffer = io.BytesIO()
+    output_buffer.write(output_audio)
+    output_buffer.seek(0)
 
     return output_buffer

@@ -93,14 +93,9 @@ def doTTS():
         effect = request.json['effect']
 
     if effect == "Echo": 
-        delay = 0.03  # Задержка в секундах (30 миллисекунд)
-        decay = 0.2  # Затухание
-        buffer_ = add_echo(buffer_, delay, decay)
+        buffer_ = add_echo(buffer_, output_format=req["format"])
     elif effect == "Radio":
-        cutoff_freq_low = 2000  # Частота среза для фильтра низких частот (Гц)
-        cutoff_freq_high = 3000  # Частота среза для фильтра высоких частот (Гц)
-        noise_level = 0.1  # Уровень шума
-        buffer_ = add_radio_effect(buffer_, cutoff_freq_low, cutoff_freq_high, noise_level)
+        buffer_ = add_radio_effect(buffer_, request.json['sample_rate'], format=req["format"])
 
     return jsonify({'results': [{'Audio': base64.b64encode(buffer_.getvalue()).decode()}]})
 
