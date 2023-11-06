@@ -9,7 +9,7 @@ def add_echo(input_buffer, output_format='ogg'):
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
         '-i', 'pipe:0',  # ввод из pipe (стандартного ввода)
         '-i', 'announce.wav',
-        '-filter_complex', '[0] [1] afir=dry=3:wet=8',
+        '-filter_complex', '[0] [1] afir=dry=3:wet=8 [out]; [out] volume=6',
         '-f', output_format,  # формат вывода (например, OGG)
         'pipe:1'  # вывод в pipe (стандартный вывод)
     ]
