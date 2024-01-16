@@ -1,4 +1,4 @@
-import base64, os, io
+import base64, os, io, sys
 
 from src.SpeakerPatch import SpeakerPatch,SpeakerPatchInit
 from src.WarmUp import WarmUp
@@ -6,6 +6,15 @@ from src.SoundEffects import add_echo, add_radio_effect
 
 import torch
 import torchaudio
+
+# ffmpeg fix
+current_directory = os.path.abspath(os.path.dirname(__file__))
+bin_directory = os.path.join(current_directory, 'bin')
+os.environ['PATH'] = f"{bin_directory}:{os.environ['PATH']}"
+sys.path.append(bin_directory)
+
+print(torchaudio.list_audio_backends())
+torchaudio.set_audio_backend("sox")
 
 torch.set_num_threads(int(os.environ.get("threads","4")))
 
