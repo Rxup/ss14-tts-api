@@ -106,7 +106,7 @@ def doTTS():
     elif effect == "Radio":
         buffer_ = add_radio_effect(buffer_, request.json['sample_rate'], format=req["format"])
 
-    return jsonify({'results': [{'Audio': base64.b64encode(buffer_.getvalue()).decode()}]})
+    return jsonify({'results': [{'audio': base64.b64encode(buffer_.getvalue()).decode()}]})
 
 if __name__ == '__main__':
     WarmUp(model,speakers)
