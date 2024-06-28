@@ -1,7 +1,7 @@
 FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
 VOLUME [ "/root/.cache/" ]
 VOLUME [ "/workspace/voices" ]
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl wget jq libsndfile1 sox libsox-dev libsox-fmt-all && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl wget jq libsndfile1 sox libsox-dev libsox-fmt-all libavdevice-dev && rm -rf /var/lib/apt/lists/*
 RUN python -m venv venv
 RUN . venv/bin/activate
 ADD requirements.txt .
