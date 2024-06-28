@@ -11,6 +11,7 @@ ADD wsgi.py .
 ADD *.wav .
 COPY src src/
 RUN pip3 install gevent
+RUN ldconfig
 ADD ffmpeg-install-latest.sh .
 RUN bash ./ffmpeg-install-latest.sh
 RUN rm ./ffmpeg-install-latest.sh
