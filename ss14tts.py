@@ -1,5 +1,8 @@
 import base64, os, io, sys
 
+import re
+from russtress import Accent
+
 from src.SpeakerPatch import SpeakerPatch,SpeakerPatchInit
 from src.WarmUp import WarmUp
 from src.SoundEffects import add_echo, add_radio_effect
@@ -13,10 +16,12 @@ bin_directory = os.path.join(current_directory, 'bin')
 os.environ['PATH'] = f"{bin_directory}:{os.environ['PATH']}"
 sys.path.append(bin_directory)
 
-print(torchaudio.list_audio_backends())
-torchaudio.set_audio_backend("sox")
+accent = Accent()
 
-torch.set_num_threads(int(os.environ.get("threads","4")))
+print(torchaudio.list_audio_backends())
+
+torch.set_num_threads(int(os.environ.get("threads","6")))
+torchaudio.set_audio_backend("sox")
 
 language = 'ru'
 model_id = 'v3_1_ru'
@@ -68,45 +73,81 @@ def doHEALTH():
 @app.route('/tts', methods=['POST'])
 def doTTS():
     req = request.json
-    if request.json['api_token'] != ApiToken:
+    if req['api_token'] != ApiToken:
         abort(403)
         return
+    if 'text' not in req:
+        abort(400)
+        return
+    if 'speaker' not in req:
+        abort(400)
+        return
     audio = None
-    speaker = request.json['speaker']
+    speaker = req['speaker']
+
+    if 'sample_rate' not in req:
+        req['sample_rate'] = 24000
+    if 'put_accent' not in req:
+        req['put_accent'] = True
+    if 'put_yo' not in req:
+        req['put_yo'] = False
+    if 'format' not in req:
+        req['format'] = 'ogg'
 
     speaker, voiceFile = SpeakerPatch(speaker,speakers)
 
-    if request.json['ssml']:
-        audio = model.apply_tts(ssml_text=request.json['text'],
+    if 'ssml' in req and req['ssml']:
+        audio = model.apply_tts(ssml_text=patch_ssml(req['text']),
             speaker=speaker,
-            sample_rate=request.json['sample_rate'],
-            put_accent=request.json['put_accent'],
-            put_yo=request.json['put_yo'],
+            sample_rate=req['sample_rate'],
+            put_accent=req['put_accent'],
+            put_yo=req['put_yo'],
             voice_path=voiceFile
         )
     else:
-        audio = model.apply_tts(text=request.json['text'],
+        audio = model.apply_tts(text=patch_text(req['text']),
             speaker=speaker,
-            sample_rate=request.json['sample_rate'],
-            put_accent=request.json['put_accent'],
-            put_yo=request.json['put_yo'],
+            sample_rate=req['sample_rate'],
+            put_accent=req['put_accent'],
+            put_yo=req['put_yo'],
             voice_path=voiceFile
         )
     # Saving to bytes buffer
     buffer_ = io.BytesIO()
-    torchaudio.save(buffer_, audio.unsqueeze(0), request.json['sample_rate'], format=req["format"])
+    torchaudio.save(buffer_, audio.unsqueeze(0), req['sample_rate'], format=req["format"])
     buffer_.seek(0)
 
     effect = None
-    if 'effect' in request.json:
-        effect = request.json['effect']
+    if 'effect' in req:
+        effect = req['effect']
 
     if effect == "Echo": 
         buffer_ = add_echo(buffer_, output_format=req["format"])
     elif effect == "Radio":
-        buffer_ = add_radio_effect(buffer_, request.json['sample_rate'], format=req["format"])
+        buffer_ = add_radio_effect(buffer_, req['sample_rate'], format=req["format"])
 
     return jsonify({'results': [{'audio': base64.b64encode(buffer_.getvalue()).decode()}]})
+
+def patch_ssml(ssml_content):
+    def add_accents(match):
+        text = match.group(1)
+        try:
+            accented_text = accent.put_stress(text)
+        except:
+            accented_text = text  # Если не удалось поставить ударение, возвращаем исходный текст
+        return f">{accented_text}<"
+
+    # Заменяем текст внутри тегов
+    patched_ssml = re.sub(r'>([^<>]+)<', add_accents, ssml_content)
+    return patched_ssml
+
+def patch_text(text_content):
+    text = ""
+    try:
+        text = accent.put_stress(text_content)
+    except:
+        text = text_content  # Если не удалось поставить ударение, возвращаем исходный текст
+    return text
 
 if __name__ == '__main__':
     WarmUp(model,speakers)

@@ -12,3 +12,4 @@ librosa
 soundfile
 scipy
 pydub
+russtress 
