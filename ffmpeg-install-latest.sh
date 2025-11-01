@@ -21,10 +21,13 @@ temp_dir="/tmp/ffmpeg_temp"
 mkdir -p $temp_dir
 
 # Скачиваем файл
-wget $download_url -O $temp_dir/$file_name
+wget $download_url -O /tmp/$file_name
+
+stat /tmp/$file_name
+ls -s $temp_dir
 
 # Распаковываем архив
-tar -xf $temp_dir/$file_name -C $temp_dir
+tar -xf /tmp/$file_name -C $temp_dir
 
 # Указываем пути
 #pkg_path="$temp_dir/ffmpeg-master-latest-linux64-gpl-shared"
@@ -38,6 +41,8 @@ BIN_PATH="./bin"
 # Создаем директорию, если она не существует
 mkdir -p $pkg_lib_path
 mkdir -p $BIN_PATH
+
+ls -s $pkg_path
 
 # Копируем файлы
 cp -r $pkg_path/* $pkg_lib_path/
@@ -53,4 +58,4 @@ rm -rf $temp_dir
 
 echo "Установлен FFmpeg версии ${latest_version}"
 
-"${pkg_lib_path}/bin/ffmpeg" -version
+"${BIN_PATH}/ffmpeg" -version

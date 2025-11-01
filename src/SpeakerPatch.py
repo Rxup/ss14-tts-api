@@ -1,4 +1,5 @@
 import os
+import glob
 
 # Get the current working directory
 cwd = os.getcwd()
@@ -40,6 +41,20 @@ def SpeakerPatchInit(model,example_text):
         #if not os.path.isfile(dynVoices+"/"+value+".pt"):
         #    model.apply_tts(text=example_text, speaker="random", sample_rate=24000, put_accent=False, put_yo=False)
         #    model.save_random_voice(dynVoices+"/"+value+".pt")
+
+def GetAllSpeakers(speakers):
+    voices = set()
+
+    # 1. Кастомные .pt файлы
+    pt_files = glob.glob(os.path.join(dynVoices, "*.pt"))
+    for pt in pt_files:
+        voice_name = os.path.basename(pt).replace(".pt", "")
+        voices.add(voice_name)
+
+    for pt in speakers:
+        if pt != 'random':
+            voices.add(pt)
+    return sorted(list(voices))
 
 def SpeakerPatch(speaker,speakers):
     voiceFile = dynVoices+"/"+speaker+".pt"

@@ -1,103 +1,82 @@
-from pydub import AudioSegment
+# src/SoundEffects.py
 import subprocess
 import io
 
-# https://freesound.org/people/jorickhoofd/sounds/160144/
+# Убедись, что файлы существуют
+RADIO1_PATH = "radio1.wav"
+RADIO2_PATH = "radio2.wav"
+
+def _run_ffmpeg(cmd, input_data):
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    stdout, stderr = proc.communicate(input=input_data)
+    if proc.returncode != 0:
+        raise RuntimeError(f"FFmpeg error: {stderr.decode()}")
+    return stdout
+
 def add_echo(input_buffer, output_format='ogg'):
-    # Создайте FFmpeg команду с указанными фильтрами
+    input_buffer.seek(0)
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
-        '-i', 'pipe:0',  # ввод из pipe (стандартного ввода)
+        '-i', 'pipe:0',
         '-i', 'announce.wav',
-        '-filter_complex', '[0] [1] afir=dry=10:wet=10 [reverb]; [0] [reverb] amix=inputs=2:weights=10 1 [out]; [out] volume=4',
-        '-f', output_format,  # формат вывода (например, OGG)
-        'pipe:1'  # вывод в pipe (стандартный вывод)
+        '-filter_complex',
+        '[0] [1] afir=dry=10:wet=10 [reverb]; [0] [reverb] amix=inputs=2:weights=10 1 [out]; [out] volume=4',
+        '-f', output_format, 'pipe:1'
     ]
-
-    # Запустите процесс FFmpeg с выводом ошибок в stderr
-    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Прочитайте данные из входного буфера
-    input_audio = input_buffer.read()
-
-    # Выполните обработку аудио в FFmpeg и получите код завершения
-    output_audio, err_output = ffmpeg_process.communicate(input_audio)
-    return_code = ffmpeg_process.returncode
-
-    # Закройте процесс FFmpeg
-    ffmpeg_process.wait()
-
-    # Если код завершения не равен нулю, выводите ошибку FFmpeg
-    if return_code != 0:
-        print("Ошибка FFmpeg:")
-        print(err_output.decode("utf-8"))
-
-    # Создайте буфер для измененного аудио и верните его
-    output_buffer = io.BytesIO()
-    output_buffer.write(output_audio)
-    output_buffer.seek(0)
-
-    return output_buffer
-
-#https://freesound.org/people/Breviceps/sounds/457037/
-radio1_audio = AudioSegment.from_file("radio1.wav")
-radio2_audio = AudioSegment.from_file("radio2.wav")
+    output = _run_ffmpeg(cmd, input_buffer.read())
+    result = io.BytesIO(output)
+    result.seek(0)
+    return result
 
 def add_radio_effect(input_buffer, hz=44100, format='ogg'):
     input_buffer.seek(0)
-    # Загрузка звукового файла
-    audio = AudioSegment.from_file(input_buffer, format=format)
+    input_data = input_buffer.read()
 
-    # Примените эффект highpass
-    audio = audio.high_pass_filter(1000)
-
-    # Примените эффект lowpass
-    audio = audio.low_pass_filter(3000)
-
-    # Примените эффект acrusher
-    audio = audio.set_frame_rate(hz)  # Установите желаемую частоту дискретизации
-    audio = audio.set_channels(1)  # Установите желаемое количество каналов (1 для моно, 2 для стерео)
-    audio = audio.set_sample_width(1)  # Установите желаемый размер выборки (1 байт)
-
-    audio = radio1_audio + audio + radio2_audio
-
-    # Запись измененного аудио в буфер
-    output_buffer = io.BytesIO()
-    audio.export(output_buffer, format=format)
-
-    return output_buffer
-
-def add_robot(input_buffer, output_format='ogg'):
-    # Запустите FFmpeg с указанными фильтрами
-    cmd = [
+    # 1. Фильтрация → PCM (s16le)
+    cmd_filter = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
-        '-i', 'pipe:0',  # ввод из pipe (стандартного ввода)
-        '-filter:a', "afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=1024:overlap=0.5,deesser=i=0.4,volume=volume=1.5",
-        '-f', output_format,  # формат вывода (OGG)
-        'pipe:1'  # вывод в pipe (стандартный вывод)
+        '-i', 'pipe:0',
+        '-af', 'highpass=f=1000,lowpass=f=3000,acrusher=level_in=1:level_out=1:bits=8:mode=0:aa=1',
+        '-ar', str(hz),
+        '-ac', '1',
+        '-f', 's16le', 'pipe:1'
+    ]
+    filtered = _run_ffmpeg(cmd_filter, input_data)  # ← PCM bytes
+
+    # 2. Смешивание: radio1 + filtered (PCM) + radio2
+    cmd_mix = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', RADIO1_PATH,           # [0:a] wav
+        '-f', 's16le', '-ar', str(hz), '-ac', '1', '-i', 'pipe:0',  # [1:a] ← PCM
+        '-i', RADIO2_PATH,           # [2:a] wav
+        '-filter_complex',
+        '[0:a][1:a][2:a]concat=n=3:v=0:a=1[outa]',
+        '-map', '[outa]',
+        '-f', format,
+        'pipe:1'
     ]
 
-    # Запустите процесс FFmpeg с выводом ошибок в stderr
-    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result_bytes = _run_ffmpeg(cmd_mix, filtered)
+    result = io.BytesIO(result_bytes)
+    result.seek(0)
+    return result
 
-    # Прочитайте данные из входного буфера
-    input_audio = input_buffer.read()
-
-    # Выполните обработку аудио в FFmpeg и получите код завершения
-    output_audio, err_output = ffmpeg_process.communicate(input_audio)
-    return_code = ffmpeg_process.returncode
-
-    # Закройте процесс FFmpeg
-    ffmpeg_process.wait()
-
-    # Если код завершения не равен нулю, выводите ошибку FFmpeg
-    if return_code != 0:
-        print("Ошибка FFmpeg:")
-        print(err_output.decode("utf-8"))
-
-    # Создайте буфер для измененного аудио
-    output_buffer = io.BytesIO()
-    output_buffer.write(output_audio)
-    output_buffer.seek(0)
-
-    return output_buffer
+def add_robot(input_buffer, hz=44100, format='ogg'):
+    input_buffer.seek(0)
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', 'pipe:0',
+        '-filter:a', "afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=1024:overlap=0.5,deesser=i=0.4,volume=1.5",
+        '-ar', str(hz),
+        '-ac', '1',
+        '-f', format, 'pipe:1'
+    ]
+    output = _run_ffmpeg(cmd, input_buffer.read())
+    result = io.BytesIO(output)
+    result.seek(0)
+    return result

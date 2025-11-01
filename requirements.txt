@@ -1,15 +1,6 @@
 ipython
-omegaconf
-pydub
-PyYAML
 torch
-torchaudio
+soundfile
 Flask
 jsonify
-PySoundFile
-numpy
-librosa
-soundfile
-scipy
-pydub
-russtress 
+git+https://github.com/Desklop/StressRNN

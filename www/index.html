@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SS14 TTS — Тестер</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #00d9ff;
+            --text: #e2e8f0;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+        
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 720px;
+            margin: 40px auto;
+            background: var(--card);
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            margin: 0 0 8px;
+            font-size: 2rem;
+        }
+        
+        p.subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin: 18px 0 6px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        input, select {
+            background: #334155;
+            color: white;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.3);
+        }
+        
+        button {
+            background: var(--accent);
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            background: #00b8d4;
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success { background: #064e3b; color: #6ee7b7; }
+        .status.error { background: #450a0a; color: #fca5a5; }
+        .status.info { background: #172554; color: #93c5fd; }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .actions button {
+            flex: 1;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container { padding: 20px; margin: 20px auto; }
+            h1 { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SS14 TTS Тестер</h1>
+        <p class="subtitle">Генерация речи для Space Station 14</p>
+        
+        <label for="text">Текст для озвучки:</label>
+        <input type="text" id="textInput" placeholder="Введите текст..." value="Привет, это тестовый голос!">
+        
+        <label for="speakerSelect">Голос:</label>
+        <select id="speakerSelect">
+            <option value="">Загрузка голосов...</option>
+        </select>
+        
+        <label for="apiTokenInput">Токен (если требуется):</label>
+        <input type="text" id="apiTokenInput" placeholder="test" value="test">
+        
+        <label for="effectSelect">Эффект:</label>
+        <select id="effectSelect">
+            <option value="">Нет</option>
+            <option value="Echo">Эхо</option>
+            <option value="Radio">Радио</option>
+            <option value="Robot">Робот</option>
+        </select>
+
+        <button id="generateBtn" onclick="generateTTS()">Сгенерировать речь</button>
+        
+        <div class="actions">
+            <button onclick="downloadAudio()">Скачать WAV</button>
+            <button onclick="loadVoices()">Обновить голоса</button>
+        </div>
+        
+        <div id="status" class="status info">Загрузка голосов...</div>
+        <audio id="audioPlayer" controls style="display:none;"></audio>
+    </div>
+    
+    <script>
+        let availableVoices = [];
+        const audioPlayer = document.getElementById('audio');
+        const statusEl = document.getElementById('status');
+        const generateBtn = document.getElementById('generateBtn');
+        
+        // --- Форматирование имени голоса ---
+        function formatVoiceName(voice) {
+            const names = {
+                'aidar': 'Айдар (м)',
+                'baya': 'Бая (ж)',
+                'xenia': 'Ксения (ж)',
+                'kseniya': 'Ксюша (ж)',
+                'eugene': 'Евгений (м)',
+                'pavel': 'Павел (м)',
+                'thorsten': 'Thorsten (м)',
+                'lena': 'Лена (ж)'
+            };
+            return names[voice] || voice;
+        }
+        
+        // --- Показ статуса ---
+        function showStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        // --- Загрузка голосов ---
+        async function loadVoices() {
+            const select = document.getElementById('speakerSelect');
+            showStatus('Загрузка списка голосов...', 'info');
+            
+            try {
+                const res = await fetch('/voices');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                availableVoices = await res.json();
+                select.innerHTML = '<option value="">Выберите голос</option>';
+                
+                availableVoices.forEach(voice => {
+                    const opt = document.createElement('option');
+                    opt.value = voice;
+                    opt.textContent = formatVoiceName(voice);
+                    select.appendChild(opt);
+                });
+                
+                showStatus(`Загружено голосов: ${availableVoices.length}`, 'success');
+            } catch (err) {
+                console.error(err);
+                showStatus('Ошибка загрузки голосов: ' + err.message, 'error');
+                select.innerHTML = '<option value="baya">baya (резерв)</option>';
+            }
+        }
+        
+        // --- Генерация TTS ---
+        async function generateTTS() {
+            const text = document.getElementById('textInput').value;
+            const speaker = document.getElementById('speakerSelect').value;
+            const effect = document.getElementById('effectSelect').value;
+            const api_token = document.getElementById('apiTokenInput').value;
+            
+            if (!text) {
+                showStatus('Введите текст!', 'error');
+                return;
+            }
+            
+            if (!api_token) {
+                showStatus('Введите API токен!', 'error');
+                return;
+            }
+            
+            const generateBtn = document.getElementById('generateBtn');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Генерация...';
+            showStatus('Генерируем речь...', 'info');
+            
+            try {
+                const response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text,
+                        speaker,
+                        api_token,
+                        effect,
+                        format: 'ogg',           // Явно указываем
+                        sample_rate: 24000,      // Опционально
+                        put_accent: false,
+                        put_yo: false
+                    })
+                });
+                
+                // Обработка HTTP-ошибок
+                if (!response.ok) {
+                    let errorMessage = 'Неизвестная ошибка';
+                    try {
+                        const errData = await response.json();
+                        errorMessage = errData.description || errData.error || errorMessage;
+                    } catch {
+                        errorMessage = await response.text() || errorMessage;
+                    }
+                    throw new Error(`Сервер: ${errorMessage}`);
+                }
+                
+                // Получаем аудио как Blob
+                const json = await response.json();
+                if (!json || !json.results || json.results.length === 0) {
+                    throw new Error('Пустой аудиофайл');
+                }
+                console.log(json);
+                
+                const url = URL.createObjectURL(base64ToBlob(json.results[0].audio, 'audio/ogg'));
+                
+                // Очищаем старый URL
+                if (audioPlayer.src) {
+                    URL.revokeObjectURL(audioPlayer.src);
+                }
+                
+                audioPlayer.src = url;
+                audioPlayer.style.display = 'block';
+                
+                // Ждём, пока аудио загрузится
+                await audioPlayer.play().catch(playErr => {
+                    console.warn('Автовоспроизведение заблокировано:', playErr);
+                    showStatus('Нажмите Play для воспроизведения', 'warning');
+                });
+                
+                showStatus('Аудио готово!', 'success');
+                
+            } catch (err) {
+                console.error('TTS Error:', err);
+                showStatus('Ошибка: ' + err.message, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Сгенерировать речь';
+            }
+        }
+        
+        function base64ToBlob(base64, mimeType) {
+            const byteChars = atob(base64);
+            const byteArrays = [];
+            for (let i = 0; i < byteChars.length; i++) {
+                byteArrays.push(byteChars.charCodeAt(i));
+            }
+            return new Blob([new Uint8Array(byteArrays)], { type: mimeType });
+        }
+        // --- Скачивание аудио ---
+        function downloadAudio() {
+            if (!audioPlayer.src || audioPlayer.src.startsWith('blob:')) {
+                const a = document.createElement('a');
+                a.href = audioPlayer.src;
+                a.download = `tts_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.wav`;
+                a.click();
+            } else {
+                showStatus('Сначала сгенерируйте аудио', 'error');
+            }
+        }
+        
+        // --- Автозагрузка при старте ---
+        window.onload = () => {
+            loadVoices();
+        };
+    </script>
+</body>
+</html>
