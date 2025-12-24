@@ -2,6 +2,7 @@ FROM pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime
 VOLUME [ "/root/.cache/" ]
 VOLUME [ "/workspace/voices" ]
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl wget jq libsndfile1 sox libsox-dev libsox-fmt-all libavdevice-dev git xz-utils && rm -rf /var/lib/apt/lists/*
+ADD ffmpeg-n6.1.1-1-g61b88b4dda-linux64-gpl-6.1.tar.xz /usr/local/lib/ffmpeg
 ADD ffmpeg-install-latest.sh .
 RUN bash ./ffmpeg-install-latest.sh
 RUN rm ./ffmpeg-install-latest.sh
