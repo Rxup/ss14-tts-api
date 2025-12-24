@@ -122,8 +122,11 @@ def doTTS():
         )
     # Saving to bytes buffer
     with io.BytesIO() as buffer_:
-        sf.write(buffer_, audio, req['sample_rate'], format=req["format"])
-    #torchaudio.save(buffer_, audio.unsqueeze(0), req['sample_rate'], format=req["format"])
+        if req["format"] == "ogg":
+            sf.write(buffer_, audio, 24000, format="ogg", subtype="VORBIS")
+        else:
+            sf.write(buffer_, audio, req['sample_rate'], format=req["format"])
+        #torchaudio.save(buffer_, audio.unsqueeze(0), req['sample_rate'], format=req["format"])
         buffer_.seek(0)
 
         effect = None
