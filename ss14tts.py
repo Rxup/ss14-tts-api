@@ -32,7 +32,7 @@ ApiToken = os.environ.get("apitoken","test")
 local_file = 'model.pt'
 if not os.path.isfile(local_file):
     print("Start download silero models")
-    torch.hub.download_url_to_file('https://models.silero.ai/models/tts/ru/v4_ru.pt',
+    torch.hub.download_url_to_file('https://models.silero.ai/models/tts/ru/v3_1_ru.pt',
                                    local_file)  
 
 model = torch.package.PackageImporter(local_file).load_pickle("tts_models", "model")
